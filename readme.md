@@ -15,5 +15,5 @@ devtools::install_github("xingyili/PathActMarker")
 
 ## Detailed documentation
 
-Please visit [here](https://xingyili.github.io/PathActMarker) for more information on pathactmarker.
+Please visit [here](https://xingyili.github.io/PathActMarker) for more information on PathActMarker.
 
