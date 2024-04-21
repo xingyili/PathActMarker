@@ -336,7 +336,8 @@ GetARIscore = function(iES_mat, label, samplenum = 20,n_iter = 50) {
 
   }
 
-  return(mean(ARI_vec))
+  # return(mean(ARI_vec))
+  return (ARI_vec)
 
 }
 
