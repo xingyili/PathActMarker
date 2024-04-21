@@ -1,0 +1,65 @@
+Package: PathActMarker
+Type: Package
+Title: An R package for inferring pathway activity and visualization
+Version: 1.0.0
+Author: person(given = "Zhelin",
+           family = "Zhao",
+           role = c("aut", "cre"),
+           email = "zz263943@mail.nwpu.edu.cn")
+        person(given = "Xingyi",
+           family = "Li",
+           role = c("aut"),
+           email = "xingyili@nwpu.edu.cn")
+        person(given = "Jun",
+           family = "Hao",
+           role = c("aut"),
+           email = "haojun@mail.nwpu.edu.cn")
+Maintainer: Zhelin Zhao <zz263943@mail.nwpu.edu.cn>
+Description: PathActMarker integrates widely used normalization methods as well as seven state-of-the-art pathway activity inference methods into an effective framework for inferring pathway activity. PathActMarker can rank the importance of pathways and identify the top-ranked pathways as biomarkers for visualization and interpretation. Finally, the performance of pathway activity inference methods can be compared by ARI scores and visualized by violin plot.
+License: GPL (>=2)
+Encoding: UTF-8
+LazyData: true
+LazyDataCompression: xz
+Depends: 
+    R (>= 3.5.0)
+Imports: 
+    ggplot2,
+    dendextend,
+    ggpubr,
+    pheatmap,
+    DelayedMatrixStats,
+    BiocParallel,
+    DelayedArray,
+    GSEABase,
+    IRanges,
+    Matrix,
+    glmnet,
+    sparseMatrixStats,
+    matrixStats,
+    methods,
+    rsvd,
+    BiocSingular,
+    caret,
+    cluster,
+    edgeR,
+    limma,
+    mclust,
+    survival,
+    R.oo,
+    princurve (>= 2.0.4),
+    survminer,
+    Rcpp (>= 1.0.10),
+    randomForest,
+    BiocStyle,
+    lsa,
+    RColorBrewer,
+    scales,
+    fmsb
+LinkingTo: Rcpp, RcppArmadillo
+NeedsCompilation: yes
+SystemRequirements: C++11
+RoxygenNote: 7.2.3
+Suggests: 
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr

@@ -1,0 +1,1150 @@
+---
+title: "The PathActMarker User's Guide"
+author:  
+  - name: Zhelin Zhao
+    email: zz263943@mail.nwpu.edu.cn
+  - name: Xingyi Li
+    email: xingyili@nwpu.edu.cn
+  - name: Jun Hao
+    email: haojun@mail.nwpu.edu.cn
+shorttitle: PathActMarker guide
+package: PathActMarker
+output: 
+  BiocStyle::html_document:
+    toc: true
+    toc_float: true
+    number_sections: true
+Abstract: >
+  PathActMarker integrates widely used normalization methods as well as seven state-of-the-art pathway activity inference methods into an effective framework for inferring pathway activity. PathActMarker can rank the importance of pathways and identify the top-ranked pathways as biomarkers for visualization and interpretation. Finally, the performance of pathway activity inference methods can be compared by ARI scores and visualized by violin plot. 
+vignette: >
+  %\VignetteIndexEntry{PathActMarker}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(PathActMarker)
+```
+
+# Install
+
+## Install PathActMarker
+
+```R
+install.packages("devtools")
+devtools::install_github("xingyili/PathActMarker")
+```
+
+# Introduction
+
+## Background
+
+The process of complex diseases is believed to be a combination of multiple genetic variants and is closely linked to the disruption of key biological pathways. Therefore, inferring pathway activity to identify disease-related pathway biomarkers has great potential in precision medicine. We introduce PathActMarker, an R package for inferring pathway activity and visualization. PathActMarker normalizes gene expression data and combines it with provided pathway information to infer pathway activity and thereby identify pathway biomarkers. Specifically, the package provides seven state-of-the-art pathway activity inference methods to convert high-dimensional gene expression data into a biologically interpretable low-dimensional pathway activity matrix. Meanwhile, it can identify important pathway as biomarkers based on statistical and machine learning algorithms, and provides a set of functions to visualize and interpret pathway biomarkers. Finally, the performance of the pathway activity inference algorithms can be compared based on the adjusted rand index (ARI) scores and visualized using violin plots.
+
+# Expression matrix standardization
+
+## Description
+
+NormalizeExp is used to standardize the gene expression matrix, which mainly consists of three  steps:
+
+- Step 1: Filter out the same gene.
+
+- Step. 2: Filter out genes with constant expression values. 
+
+- Step 3: Normalize the matrix. 
+
+## Usage
+
+```
+NormalizeExp(exp, method = "zscore")
+```
+
+## Arguments
+
+- exp
+
+  A gene expression profile of interest (rows are genes, columns are samples).
+
+- method 		
+
+  Normalization methods:TPM, TMM, quantile, Z-score, min-max (default: None).
+
+## Value
+
+A standardized gene expression matrix.
+
+## Examples
+
+```
+data(KICH)
+KICHfilter = NormalizeExp(KICH)
+```
+
+# Pathway activation evaluation algorithm：CORGs
+
+## Description
+
+CORGs overlaid the expression values of each gene on its corresponding protein in each pathway to infer the pathway activity.
+
+## Usage
+
+```R
+UseCORGs (exp, pathwaylist, kernelMethods=c("Gaussian", "Poisson", "none"),
+          abs.ranking=FALSE, min.sz=1, max.sz=Inf, parallel.sz=1L,
+          mx.diff=TRUE, tau=NA, ssgsea.norm=TRUE,
+          verbose=TRUE, BPPARAM=SerialParam(progressbar=verbose))
+```
+
+## Arguments
+
+- exp
+
+  A gene expression profile of interest (rows are genes, columns are samples).
+
+- pathwaylist
+
+  The pathway genesets.
+
+- kernelMethods  
+
+  Character string denoting the kernel to use during the non-parametric estimation of the cumulative distribution function of expression levels across samples when method="gsva". By default, kcdf="Gaussian" which is suitable when input expression values are continuous, such as microarray. When input expression values are integer counts, such as RNA-seq experiments should be set to kcdf="Poisson".
+
+- min.sz		
+
+  Minimum size of the resulting gene sets.
+
+- max.sz     
+
+  Maximum size of the resulting gene sets.
+
+- parallel.sz		
+
+  Number of threads of execution to use when doing the calculations in parallel.
+
+- mx.diff		
+
+  Two approaches to calculate the enrichment statistic (ES) from the KS random walk statistic. mx.diff=FALSE: ES is calculated as the maximum distance of the random walk from 0. mx.diff=TRUE (default): ES is calculated as the magnitude difference between the largest positive and negative random walk deviations.
+
+- Tau			
+
+  Exponent defining the weight of the tail in the random walk.
+
+- ssgsea.norm	
+
+  Logical, set to TRUE (default) . When ssgsea.norm=FALSE this last normalization step is skipped.
+
+- Verbose		
+
+  Gives information about each calculation step. Default: TRUE.
+
+- BPPARAM	
+
+  An object of class BiocParallelParam specifiying parameters.
+
+- abs.ranking	
+
+  When abs.ranking=FALSE (default) a modified Kuiper statistic is used to calculate enrichment scores.
+
+## Value
+
+Pathway activity matrix (rows are pathways, columns are samples).
+
+## Examples
+
+```R
+data(KICH)
+data(KEGGgenesetsID)
+KICHfilter <- NormalizeExp(KICH)
+CORGsResults = UseCORGs(KICHfilter, KEGGgenesetsID)
+```
+
+# Pathway activation evaluation algorithm：UseGSVA
+
+## Description
+
+GSVA converts the expression matrix of genes in different samples into the expression matrix of gene sets in different samples to evaluate whether different pathways are enriched in different samples.
+
+## Usage
+
+```R
+UseGSVA(exp, pathwaylist, kernelMethods=c("Gaussian", "Poisson", "none"),
+          abs.ranking=FALSE, min.sz=1, max.sz=Inf, parallel.sz=1L,
+          mx.diff=TRUE, tau=1, ssgsea.norm=TRUE,
+          verbose=TRUE, BPPARAM=SerialParam(progressbar=verbose))
+```
+
+## Arguments
+
+- exp			
+
+  A gene expression profile of interest (rows are genes, columns are samples).
+
+- pathwaylist	 
+
+  The pathway genesets.
+
+- kernelMethods  
+
+  Character string denoting the kernel to use during the non-parametric estimation of the cumulative distribution function of expression levels across samples when method="gsva". By default, kcdf="Gaussian" which is suitable when input expression values are continuous, such as microarray. When input expression values are integer counts, such as RNA-seq experiments should be set to kcdf="Poisson".
+
+- min.sz		
+
+  Minimum size of the resulting gene sets.
+
+- max.sz     
+
+  Maximum size of the resulting gene sets.
+
+- parallel.sz		
+
+  Number of threads of execution to use when doing the calculations in parallel.
+
+- mx.diff		
+
+  Two approaches to calculate the enrichment statistic (ES) from the KS random walk statistic. mx.diff=FALSE: ES is calculated as the maximum distance of the random walk from 0. mx.diff=TRUE (default): ES is calculated as the magnitude difference between the largest positive and negative random walk deviations.
+
+- Tau			
+
+  Exponent defining the weight of the tail in the random walk.
+
+- ssgsea.norm	
+
+  Logical, set to TRUE (default) . When ssgsea.norm=FALSE this last normalization step is skipped.
+
+- Verbose		
+
+  Gives information about each calculation step. Default: TRUE.
+
+- BPPARAM	
+
+  An object of class BiocParallelParam specifiying parameters.
+
+- abs.ranking	
+
+  When abs.ranking=FALSE (default) a modified Kuiper statistic is used to calculate enrichment scores.
+
+## Value
+
+Pathway activity matrix (rows are pathways, columns are samples).
+
+## Examples
+
+```R
+data(KICH)
+data(KEGGgenesetsID)
+KICHfilter <- NormalizeExp(KICH)
+GSVAResults = UseGSVA(KICHfilter, KEGGgenesetsID)
+```
+
+# Pathway activation evaluation algorithm：UsessGSEA
+
+## Description
+
+UsessGSEA indicates the degree of gene set enrichment in each sample by calculating an enrichment score for each pair of sample-gene sets.
+
+## Usage
+
+```R
+UsessGSEA(exp, pathwaylist, kernelMethods=c("Gaussian", "Poisson", "none"),
+          abs.ranking=FALSE, min.sz=1, max.sz=Inf, parallel.sz=1L,
+          mx.diff=TRUE, tau=0.25, ssgsea.norm=TRUE,
+          verbose=TRUE, BPPARAM=SerialParam(progressbar=verbose))
+```
+
+## Arguments
+
+- exp			 
+
+  A gene expression profile of interest (rows are genes, columns are samples).
+
+- pathwaylist	 
+
+  The pathway genesets.
+
+- kernelMethods  
+
+  Character string denoting the kernel to use during the non-parametric estimation of the cumulative distribution function of expression levels across samples when method="gsva". By default, kcdf="Gaussian" which is suitable when input expression values are continuous, such as microarray. When input expression values are integer counts, such as RNA-seq experiments should be set to kcdf="Poisson".
+
+- min.sz		
+
+  Minimum size of the resulting gene sets.
+
+- max.sz     
+
+  Maximum size of the resulting gene sets.
+
+- parallel.sz		
+
+  Number of threads of execution to use when doing the calculations in parallel.
+
+- mx.diff		
+
+  Two approaches to calculate the enrichment statistic (ES) from the KS random walk statistic. mx.diff=FALSE: ES is calculated as the maximum distance of the random walk from 0. mx.diff=TRUE (default): ES is calculated as the magnitude difference between the largest positive and negative random walk deviations.
+
+- Tau			
+
+  Exponent defining the weight of the tail in the random walk.
+
+- ssgsea.norm	
+
+  Logical, set to TRUE (default) . When ssgsea.norm=FALSE this last normalization step is skipped.
+
+- Verbose		
+
+  Gives information about each calculation step. Default: TRUE.
+
+- BPPARAM	
+
+  An object of class BiocParallelParam specifiying parameters.
+
+- abs.ranking	
+
+  When abs.ranking=FALSE (default) a modified Kuiper statistic is used to calculate 				enrichment scores. 
+
+## Value
+
+Pathway activity matrix (rows are pathways, columns are samples).
+
+## Examples
+
+```R
+data(KICH)
+data(KEGGgenesetsID)
+KICHfilter <- NormalizeExp(KICH)
+ssGSEAResults = UsessGSEA(KICHfilter, KEGGgenesetsID)
+```
+
+# Pathway activation evaluation algorithm：UsePLAGE
+
+## Description
+
+PLAGE converts the level of gene expression into the level of pathway activity through singular value decomposition (SVD).
+
+## Usage
+
+```R
+UsePLAGE(exp, pathwaylist, kernelMethods=c("Gaussian", "Poisson", "none"),
+          abs.ranking=FALSE, min.sz=1, max.sz=Inf, parallel.sz=1L,
+          mx.diff=TRUE, tau=NA, ssgsea.norm=TRUE,
+          verbose=TRUE, BPPARAM=SerialParam(progressbar=verbose))
+```
+
+## Arguments
+
+- exp			 
+
+  A gene expression profile of interest (rows are genes, columns are samples).
+
+- pathwaylist	 
+
+  The pathway genesets.
+
+- kernelMethods  
+
+  Character string denoting the kernel to use during the non-parametric estimation of the cumulative distribution function of expression levels across samples when method="gsva". By default, kcdf="Gaussian" which is suitable when input expression values are continuous, such as microarray. When input expression values are integer counts, such as RNA-seq experiments should be set to kcdf="Poisson".
+
+- min.sz		
+
+  Minimum size of the resulting gene sets.
+
+- max.sz     
+
+  Maximum size of the resulting gene sets.
+
+- parallel.sz		
+
+  Number of threads of execution to use when doing the calculations in parallel.
+
+- mx.diff		
+
+  Two approaches to calculate the enrichment statistic (ES) from the KS random walk statistic. mx.diff=FALSE: ES is calculated as the maximum distance of the random walk from 0. mx.diff=TRUE (default): ES is calculated as the magnitude difference between the largest positive and negative random walk deviations.
+
+- Tau			
+
+  Exponent defining the weight of the tail in the random walk.
+
+- ssgsea.norm	
+
+  Logical, set to TRUE (default) . When ssgsea.norm=FALSE this last normalization step is skipped.
+
+- Verbose		
+
+  Gives information about each calculation step. Default: TRUE.
+
+- BPPARAM	
+
+  An object of class BiocParallelParam specifiying parameters.
+
+- abs.ranking	
+
+  When abs.ranking=FALSE (default) a modified Kuiper statistic is used to calculate enrichment scores.
+
+## Value
+
+Pathway activity matrix (rows are pathways, columns are samples).
+
+## Examples
+
+```R
+data(KICH)
+data(KEGGgenesetsID)
+KICHfilter <- NormalizeExp(KICH)
+PLAGEResults = UsePLAGE(KICHfilter, KEGGgenesetsID)
+```
+
+# Pathway activation evaluation algorithm：UseiPath
+
+## Description
+
+iPath quantifies pathway activity by calculating individual-level enrichment scores (iES) for the pathways.
+
+## Usage
+
+```R
+UseiPath(exp, pathwaylist,  BPPARAM = NULL, nPro = 0)
+```
+
+## Arguments
+
+- exp			
+
+  A gene expression profile of interest (rows are genes, columns are samples).
+
+- pathwaylist	 
+
+  The pathway genesets.
+
+- BPPARAM   
+
+  Parameters from the BiocParallel.
+
+- nPro		   
+
+  Number of processors (default = 0).
+
+## Value
+
+Pathway activity matrix (rows are pathways, columns are samples).
+
+## Examples
+
+```R
+data(KICH)
+data(KEGGgenesetsID)
+KICHfilter <- NormalizeExp(KICH)
+iPathResults = UseiPath(KICHfilter, KEGGgenesetsID)
+```
+
+
+# Pathway activation evaluation algorithm：UseSEPA
+
+## Description
+
+SEPA combines the pathway structure and signal entropy theory to quantify the pathway activity of a individual sample.
+
+## Usage
+
+```R
+UseSEPA(exp, pathwaySparseAdj)
+```
+
+## Arguments
+
+- exp			
+
+  A gene expression profile of interest (rows are genes, columns are samples).
+
+- pathwaySparseAdj	 
+
+  The pathway network.
+
+## Value
+
+Pathway activity matrix (rows are pathways, columns are samples).
+
+## Examples
+
+```R
+data(KICH)
+data(KEGGgenenetworkID)
+KICHfilter <- NormalizeExp(KICH)
+SEPAResults <- UseSEPA(KICHfilter, KEGGgenenetworkID)
+```
+
+# Pathway activation evaluation algorithm：Usepathifier
+
+## Description
+
+pathifier uses principal component analysis (PCA) to create a feature space when calculating pathway activity values and scores the degree of dysregulation in a particular pathway for each sample based on gene expression values for different states of samples.
+
+## Usage
+
+```R
+Usepathifier (exp, paths, label = NULL, ranks = NULL, attempts = 100, maximize_stability = TRUE, 	
+              logfile = "", samplings=NULL, min_exp=4, min_std=0.4)
+```
+
+## Arguments
+
+- exp			 
+
+  A gene expression profile of interest (rows are genes, columns are samples).
+
+- paths	 
+
+  The pathway genesets.
+
+- label	    
+
+  Normal(0) and tumor (1) in patient samples.
+
+- ranks		  
+
+  External knowledge on the ranking of the m samples, if exists (to use initial guess).
+
+- Attempts		
+
+  Number of repeats  to stability.
+
+- maximize_stability	
+
+  Throw away components leading to low stability of sampling noise.
+
+- logfile		
+
+  Name of the file the log should be written to (use stdout if empty).
+
+- samplings		
+
+  A matrix specifying the samples that should be chosen in each sampling attempt, chooses a random matrix if samplings is NULL.
+
+- min_exp		
+
+  The minimal expression considered as a real signal. Any values below are thresholded to be min_exp.
+
+- min_std		
+
+  The minimal allowed standard deviation of each gene.
+
+## Value
+
+Pathway activity matrix (rows are pathways, columns are samples).
+
+## Examples
+
+```R
+data(KICH)
+data(KEGGgenesetsID)
+KICHfilter <- NormalizeExp(KICH)
+pathifierResults = Usepathifier(KICHfilter, KEGGgenesetsID)
+```
+
+# Pathway activation evaluation algorithm：UsePLIER
+
+## Description
+
+PLIER performs an unsupervised data structure deconvolution and mapping to prior knowledge, and identifies regulation in cell-type proportions or pathway activity while reducing technical noise.
+
+## Usage
+
+```R
+UsePLIER(exp, pathwaylist,summary=F,svdres=NULL, k=NULL, L1=NULL, L2=NULL, L3=NULL, frac=0.7, max.iter=350, 
+         trace=F, scale=T, Chat=NULL, maxPath=10, doCrossval=T, penalty_factor=rep(1,ncol(pathwaylist)), 
+         glm_alpha=0.9, minGenes=10, tol=1e-6, seed=123456, allGenes=F, rseed=NULL, 
+         pathwaySelection=c("complete", "fast"))
+```
+
+## Arguments
+
+- exp			 
+
+  A gene expression profile of interest (rows are genes, columns are samples).
+
+- pathwaylist	 
+
+  The pathway genesets.
+
+- summary		 
+
+  Display LV and p-value corresponding to different pathway.
+
+- svdres		
+
+  Pre-computed result of the svd decomposition for exp.
+
+- k			
+
+  The number of latent variables to return, leave as NULL to be set automatically using the num_pc "elbow" method.
+
+- L1			
+
+  Constant, leave as NULL to automatically select a value.
+
+- L2			
+
+  Constant, leave as NULL to automatically select a value.
+
+- L3			
+
+  Constant, leave as NULL to automatically select a value.
+
+- frac			
+
+  The fraction of LVs that should have at least 1 prior inforamtion association, used to automatically set L3.
+
+- max.iter		
+
+  Maximum number of iterations to perform.
+
+- trace		  
+
+  Display progress information.
+
+- scale			
+
+  Z-score the exp before processing.
+
+- Chat			
+
+  A ridge inverse of pathwaylist, used to select active pathways, expensive to compute so can be precomputed when running PLIER multiple times.
+
+- maxPath 		
+
+  The maximum number of active pathways per latent variable.
+
+- doCrossval	 
+
+  Whether or not to do real cross-validation with held-out pathway genes. Alternatively, all gene annotations are used and only pseudo-crossvalidation is done. The latter option may be preferable if some pathways of interest have few genes.
+
+- penalty_factor  
+
+  A vector equal to the number of columns in pathwaylist. Sets relative penalties for different pathway/geneset subsets. Lower penalties will make a pathway more likely to be used. Only the relative values matter. Internally rescaled.
+
+- glm_alpha		 
+
+  Set the alpha for elastic-net
+
+- minGenes 		
+
+  The minimum number of genes a pathway must have to be considered.
+
+- tol 			
+
+  Convergence threshold.
+
+- seed			 
+
+  Set the seed for pathway cross-validation.
+
+- allGenes 		
+
+  Use all genes. By default only genes in the pathwaylist matrix are used.
+
+- rseed			 
+
+  Set this option to use a random initialization, instead of SVD
+
+- pathwaySelection	 
+
+  Pathways to be optimized with elstic-net penalty are preselected based on ridge regression results. "Complete" uses all top  pathways to fit individual LVs. 	
+
+## Value
+
+Pathway activity matrix (rows are pathways, columns are samples).
+
+## Examples
+
+```R
+data(KICH)
+data(KEGGgenesetsID)
+KICHfilter <- NormalizeExp(KICH)
+PLIERResults = UsePLIER(KICHfilter, KEGGgenesetsID)
+```
+
+# Feature importance ranking obtained by machine learning.
+
+## Description
+
+This function uses machine learning algorithm to get the feature importance ranking based on caret package.
+
+## Usage
+
+```R
+FeatureImportance(iES_mat, label, type = "rf")
+```
+
+## Arguments
+
+- iES_mat			
+
+  The iES_mat obtained by pathway activation evaluation algorithms.
+
+- label	 		 
+
+  Normal(0) and tumor (1) in patient samples.
+
+- type		 		
+
+  Machine learning algorithms, including Random Forest, Linear Regression, Logistic Regression, k-Nearest Neighbors, etc., default random forest.
+
+## Value
+
+The feature(pathway) importance ranking.
+
+## Examples
+
+```R
+data(GSVAResults)
+data(KICHcli)
+PathwayImportance = FeatureImportance(GSVAResults, label = KICHcli[3,] )
+```
+
+# Significance ranking of survival differences between disturbed and normal-like samples
+
+## Description
+
+This function uses survival analysis to statistically analyze the survival status of disturbed and normal-like samples in different pathways.
+
+## Usage
+
+```R
+FeatureImportanceKM(iES_mat, cli, samplenum = 10) 
+```
+
+## Arguments
+
+- iES_mat			 
+
+  The iES_mat obtained by pathway activation algorithms.
+
+- cli	 		 
+
+  The survival information for patient samples.
+
+- samplenum 		 
+
+  Minimum number of normal-like and perturbed samples.
+
+## Value
+
+The survival difference(p-value) between normal-likeand and disturbed samples.
+
+## Examples
+
+```R
+data(GSVAResults)
+data(KICHcli)
+PathwayImportance = FeatureImportanceKM(GSVAResults, KICHcli )
+```
+
+# Plot a heatmap of the pathway activity matrix
+
+## Description
+
+This function is used to visualize the heat map of the pathway activity matrix.
+
+## Usage
+
+```R
+PlotHeatmap (iES_mat, label, condition = TRUE ,title = NA)
+```
+
+## Arguments
+
+- iES_mat			 
+
+  The iES_mat obtained by pathway activation evaluation algorithms.
+
+- label	 		
+
+  Normal(0) and tumor (1) in patient samples.
+
+- condition 		 	  
+
+  Boolean value indicating whether samples need to be grouped and colored according to different conditions.
+
+- title				
+
+  A string representing the title of the heat map.
+
+## Value
+
+The heatmap.
+
+## Examples
+
+```R
+data(GSVAResults)
+data(KICHcli)
+PlotHeatmap(GSVAResults, label = KICHcli[3,])
+```
+
+# visualize the waterfall of a specified pathway.
+
+## Description
+
+This function is used to visualize the waterfall of a specified pathway.
+
+## Usage
+
+```R
+PlotWaterfall (iES_mat, path_name,label, title = TRUE)
+```
+
+## Arguments
+
+- iES_mat			 
+
+  The iES_mat obtained by pathway activation evaluation algorithms.
+
+- path_name	 	 
+
+  The pathway name.
+
+- label		 	   
+
+  Normal(0) and tumor (1) in patient samples.
+
+- title				 
+
+  Boolean true or false for including the title (path_name) in the Waterfall plot.
+
+## Value
+
+The waterfall.
+
+## Examples
+
+```R
+data(GSVAResults)
+data(KICHcli)
+PlotWaterfall(GSVAResults, path_name = "HALLMARK_PI3K_AKT_MTOR_SIGNALING" , label = KICHcli[3,] )
+```
+
+# visualize the radar plot.
+
+## Description
+
+This function is used to visualize the radar plot.
+
+## Usage
+
+```R
+PlotRadar (performanceScores)
+```
+
+## Arguments
+
+- performanceScores			 
+
+  A data frame, rows are all methods, cols are all scores.
+
+## Value
+
+The radar plot.
+
+## Examples
+
+```R
+data(KICH)
+data(KEGGgenesetsID)
+data(KICHcli)
+KICHfilter <- NormalizeExp(KICH)
+GSVARunningTimeScore <- GetRunningTimeScore(UseGSVA, KICHfilter, KEGGgenesetsID)
+GSVApathway_ret <- UseGSVA(KICHfilter, KEGGgenesetsID)
+GSVAReproducibilityScore <- GetReproducibilityScore(KICHfilter, GSVApathway_ret)
+GSVAROCAUCscore <- GetROCAUCscore(as.data.frame(t(GSVApathway_ret)), as.data.frame(t(KICHcli[3,])))
+CORGsRunningTimeScore <- GetRunningTimeScore(UseCORGs, KICHfilter, KEGGgenesetsID)
+CORGspathway_ret <- UseCORGs(KICHfilter, KEGGgenesetsID)
+CORGsReproducibilityScore <- GetReproducibilityScore(KICHfilter, CORGspathway_ret)
+CORGsROCAUCscore <- GetROCAUCscore(as.data.frame(t(CORGspathway_ret)), as.data.frame(t(KICHcli[3,])))
+ssGSEARunningTimeScore <- GetRunningTimeScore(UsessGSEA, KICHfilter, KEGGgenesetsID)
+ssGSEApathway_ret <- UsessGSEA(KICHfilter, KEGGgenesetsID)
+ssGSEAReproducibilityScore <- GetReproducibilityScore(KICHfilter, ssGSEApathway_ret)
+ssGSEAROCAUCscore <- GetROCAUCscore(as.data.frame(t(ssGSEApathway_ret)), as.data.frame(t(KICHcli[3,])))
+PlotRadar(data.frame(t(data.frame(row.names = c("RunningTimeScore", "ReproducibilityScore", "ROCAUCscore"),
+                                 GSVA = c(GSVARunningTimeScore, GSVAReproducibilityScore, GSVAROCAUCscore),
+                                 CORGs = c(CORGsRunningTimeScore, CORGsReproducibilityScore, CORGsROCAUCscore),
+                                 ssGSEA = c(ssGSEARunningTimeScore, ssGSEAReproducibilityScore, ssGSEAROCAUCscore)))))
+```
+
+
+
+# visualize the densityfallof a specified pathway.
+
+## Description
+
+This function is used to visualize the densityfall of a specified pathway.
+
+## Usage
+
+```R
+PlotDensityfall(iES_mat, path_name,label, title = TRUE)
+```
+
+## Arguments
+
+- iES_mat			
+
+  The iES_mat obtained by pathway activation evaluation algorithms.
+
+- path_name	 	 
+
+  The pathway name.
+
+- label		 	   
+
+  Normal(0) and tumor (1) in patient samples.
+
+- title				 
+
+  Boolean true or false for including the title (path_name) in the densityfall plot.
+
+## Value
+
+The densityfall.
+
+## Examples
+
+```R
+data(GSVAResults)
+data(KICHcli)
+PlotDensityfall(GSVAResults, path_name = "HALLMARK_PI3K_AKT_MTOR_SIGNALING", label = KICHcli[3,] )
+```
+
+# visualize the Kaplan-Meier(KM) survival curve of a specified pathway.
+
+## Description
+
+This function is used to visualize the Kaplan-Meier(KM) survival curve of a specified pathway.
+
+## Usage
+
+```R
+PlotiESSurv(iES_mat,cli, path_name, sample_num = 20, title = TRUE)
+```
+
+## Arguments
+
+- iES_mat			 
+
+  The iES_mat obtained by pathway activation algorithms.
+
+- cli 	 	
+
+  The survival information for patient samples.
+
+- path_name		 	
+
+  The pathway name.
+
+- sample_num     
+
+  The minimum number of patients for survival analysis.
+
+- title			
+
+  Boolean true or false for including the title (path_name) in the KM survival plot.
+
+## Value
+
+The KM survival curve.
+
+## Examples
+
+```R
+data(GSVAResults)
+data(KICHcli)
+PlotiESSurv(GSVAResults, cli = KICHcli, path_name = "HALLMARK_PI3K_AKT_MTOR_SIGNALING")
+```
+
+# Method evaluation: Running time
+
+## Description
+
+This function is used to obtain the running time score.
+
+## Usage
+
+```R
+GetRunningTimeScore (func = NA, ...)
+```
+
+## Arguments
+
+- func			 
+
+  The function that wants to evaluate running time.
+
+- ...		 		 
+
+  The param list of function.
+
+## Value
+
+The running time score of the method.
+
+## Examples
+
+```R
+data(KICH)
+data(KEGGgenesetsID)
+KICHfilter <- NormalizeExp(KICH)
+RunningTimeScore <- GetRunningTimeScore(UseGSVA, KICHfilter, KEGGgenesetsID)
+```
+
+# Method evaluation: Reproducibility score
+
+## Description
+
+This function is used to obtain the reproducibility score.
+
+## Usage
+
+```R
+GetReproducibilityScore (exp, iES_mat)
+```
+
+## Arguments
+
+- exp			 
+
+  The function that wants to evaluate running time.
+
+- iES_mat		 		 
+
+  The iES_mat obtained by pathway activation evaluation algorithms.
+
+## Value
+
+The reproducibility score.
+
+## Examples
+
+```R
+data(KICH)
+data(KEGGgenesetsID)
+KICHfilter <- NormalizeExp(KICH)
+pathway_ret <- UseGSVA(KICHfilter, KEGGgenesetsID)
+ReproducibilityScore <- GetReproducibilityScore(KICHfilter, pathway_ret)
+```
+
+# Method evaluation: ROC AUC
+
+## Description
+
+This function is used to obtain the ROC AUC.
+
+## Usage
+
+```R
+GetROCAUCscore (sample_feature, sample_labels)
+```
+
+## Arguments
+
+- sample_feature			 
+
+  A data frame. The row subscript is the index of the sample. The column subscript is the index of each feature. 
+
+- sample_labels		 		 
+
+  A data frame. The row subscript is the index of the sample. Only one column represents the label.
+
+## Value
+
+ROC AUC score.
+
+## Examples
+
+```R
+data(KICH)
+data(KICHcli)
+data(KEGGgenesetsID)
+KICHfilter <- NormalizeExp(KICH)
+pathway_ret <- UseCORGs(KICHfilter, KEGGgenesetsID)
+ROCAUCscore <- GetROCAUCscore(as.data.frame(t(pathway_ret)), as.data.frame(t(KICHcli[3,])))
+```
+
+# Obtain the adjusted rand index (ARI) score
+
+## Description
+
+This function is used to obtain the adjusted rand index (ARI) score.
+
+## Usage
+
+```R
+GetARIscore (iES_mat, label, samplenum = 20,n_iter = 50)
+```
+
+## Arguments
+
+- iES_mat			 
+
+  The iES_mat obtained by pathway activation evaluation algorithms.
+
+- label		 		 
+
+  Normal(0) and tumor (1) in patient samples.
+
+- samplenum     
+
+  The number of tumor and normal samples
+
+- n_iter        
+
+  Number of repeated experiments
+
+## Value
+
+The ARI score.
+
+## Examples
+
+```R
+data(GSVAResults)
+data(KICHcli)
+GSVAARIscore = GetARIscore(GSVAResults, label = KICHcli[3,] )
+```
+
+# visualize the ggviolin plot of ARI scores.
+
+## Description
+
+This function is used to visualize the ggviolin plot of ARI scores obtained by different pathway activation algorithms.
+
+## Usage
+
+```R
+plotggviolin (ARIscores, compare = F)
+```
+
+## Arguments
+
+- ARIscores			 
+
+  A two-column matrix, the first column(methods) and the second column(ARI value)
+
+- compare		 	 
+
+  Boolean value indicating whether statistical tests are performed for comparison between groups.
+
+## Value
+
+The ggviolin plot.
+
+## Examples
+
+```R
+data(ARIscores)
+plotggviolin(ARIscores)
+```
